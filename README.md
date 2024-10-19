@@ -1,2 +1,2 @@
 # CPTS 437 DDPG RSSI Car
- This project is a group project for CPT_S 437 - Introduction to Machine Learning @ WSU Tri-Cities. Given an electromagnetic "distress signal," the goal is to train a car using the Deep Deterministic Policy Gradient algorithm that can navigate its surroundings in order to reach the signal source, using proximity sensors for obstacle avoidance and RSSI localization for determining proximity to signal.
+Given an electromagnetic "distress signal," the goal is to train a car using the Deep Deterministic Policy Gradient algorithm that can navigate its surroundings in order to reach the signal source, using proximity sensors for obstacle avoidance and RSSI localization for determining proximity to signal.
