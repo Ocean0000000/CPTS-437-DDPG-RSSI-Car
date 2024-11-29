@@ -1,5 +1,5 @@
 checkpoints
-src/logs
+logs
 src/averages.png
 
 # Byte-compiled / optimized / DLL files

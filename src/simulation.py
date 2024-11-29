@@ -354,16 +354,42 @@ class Environment:
 
     def _create_obstacle_course(self) -> list[Obstacle]:
         obstacles = []
-        x1 = (self.x_max - self.x_min) * 0.25 + self.x_min
-        y1 = (self.y_max - self.y_min) * 0.5 + self.y_min
-        x2 = (self.x_max - self.x_min) * 0.75 + self.x_min
-        y2 = (self.y_max - self.y_min) * 0.5 + self.y_min
+        
+        # environment bounds
+        x1 = self.x_min
+        y1 = self.y_max
+        x2 = self.x_max
+        y2 = self.y_max
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = self.x_max
+        y1 = self.y_min
+        x2 = self.x_max + 0.000001
+        y2 = self.y_max
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = self.x_min
+        y1 = self.y_min
+        x2 = self.x_max
+        y2 = self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = self.x_min
+        y1 = self.y_min
+        x2 = self.x_min + 0.000001
+        y2 = self.y_max
         obstacles.append(Obstacle(x1, y1, x2, y2))
         
-        x1 = (self.x_max - self.x_min) * 0.75 + self.x_min
-        y1 = (self.y_max - self.y_min) * 0.5 + self.y_min
-        x2 = (self.x_max - self.x_min) * 0.75 + self.x_min
-        y2 = (self.y_max - self.y_min) * 1 + self.y_min
+        
+        # horizontal line
+        x1 = (self.x_max - self.x_min) * 0.2 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.65 + self.y_min
+        x2 = (self.x_max - self.x_min) * 1 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.65 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        
+        # vertical line
+        x1 = (self.x_max - self.x_min) * 0.2 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.2000001 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.65 + self.y_min
         obstacles.append(Obstacle(x1, y1, x2, y2))
         
         return obstacles
@@ -542,7 +568,7 @@ class Environment:
             m_s = (y_s - y_P)/(x_s - x_P + np.finfo(float).eps) # <- the slope of the sensor 'line of sight'
 
             # calculate point of intersection between sensor 'line of sight' and obstacle line
-            x_intersection = (m_o * x_1 - m_s * x_P + y_P - y_1)/(m_o - m_s)
+            x_intersection = (m_o * x_1 - m_s * x_P + y_P - y_1)/(m_o - m_s + np.finfo(float).eps)
             y_intersection = obstacle.y(x_intersection)
 
             self.intersections_x[sensor_name].append(x_intersection)
