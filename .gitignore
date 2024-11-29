@@ -1,3 +1,7 @@
+checkpoints
+src/logs
+src/averages.png
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
