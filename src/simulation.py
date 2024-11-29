@@ -357,7 +357,7 @@ class Environment:
         x1 = (self.x_max - self.x_min) * 0.25 + self.x_min
         y1 = (self.y_max - self.y_min) * 0.5 + self.y_min
         x2 = (self.x_max - self.x_min) * 0.75 + self.x_min
-        y2 = (self.y_max - self.y_min) * 0.5 + self.y_max
+        y2 = (self.y_max - self.y_min) * 0.5 + self.y_min
         obstacles.append(Obstacle(x1, y1, x2, y2))
         
         x1 = (self.x_max - self.x_min) * 0.75 + self.x_min
