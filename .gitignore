@@ -1,6 +1,4 @@
-checkpoints
-logs
-src/averages.png
+*.tar
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

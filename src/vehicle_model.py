@@ -44,6 +44,9 @@ class Vehicle:
         self.i = np.array([np.cos(self.theta), np.sin(self.theta)]) # local x unit vector
         self.j = np.array([-1*np.sin(self.theta), np.cos(self.theta)])  # local y unit vector
 
+        self.v_p_local = 0
+        self.V_p = self.v_p_local * self.i + self.v_r * self.i  # velocity vector
+
         self._update_Ps()
         self.F = np.array(F)
 
@@ -72,6 +75,21 @@ class Vehicle:
 
         return a_l, a_r
 
+    def reorient(self, gamma) -> None:
+        """
+        to be used in collisions
+        """
+
+        elastic_theta = 2*gamma - self.theta
+        self.theta = elastic_theta
+        self.theta = self.theta % (2*np.pi) # <- clip theta
+
+        self.i = np.array([np.cos(self.theta), np.sin(self.theta)]) # local x unit vector
+        self.j = np.array([-1*np.sin(self.theta), np.cos(self.theta)])  # local y unit vector
+
+        #self.v_p_local = self.v_p_local * 0.5
+        self.V_p = self.v_p_local * self.i + self.v_r * self.i  # velocity vector
+
     def step(self, dt: float) -> None:
         """
         take a step using simple euler.
@@ -94,6 +112,7 @@ class Vehicle:
         self._update_Ps()
 
         self.theta = self.omega * dt + self.theta
+        self.theta = self.theta % (2*np.pi) # <- clip theta
 
         self.i = np.array([np.cos(self.theta), np.sin(self.theta)]) # local x unit vector
         self.j = np.array([-1*np.sin(self.theta), np.cos(self.theta)])  # local y unit vector
@@ -128,8 +147,3 @@ class Vehicle:
         self.P_r = self.P - self.r/2 * self.j
         self.P_f = self.P + self.r * self.i
         self.P_b = self.P - self.r * self.i
-
-
-
-
-
