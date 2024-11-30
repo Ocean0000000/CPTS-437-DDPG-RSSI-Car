@@ -137,12 +137,12 @@ class Environment:
 
         # target_x = rng.uniform(self.x_min, self.x_max)
         # target_y = rng.uniform(self.y_min, self.y_max)
-        initial_x = (self.x_max - self.x_min) * 0.1 + self.x_min
-        initial_y = (self.y_max - self.y_min) * 0.1 + self.y_min
-        target_x = (self.x_max - self.x_min) * 0.9 + self.x_min
-        target_y = (self.x_max - self.x_min) * 0.9 + self.y_min
+        initial_x = (self.x_max - self.x_min) * 0.05 + self.x_min
+        initial_y = (self.y_max - self.y_min) * 0.05 + self.y_min
+        target_x = (self.x_max - self.x_min) * 0.85 + self.x_min
+        target_y = (self.x_max - self.x_min) * 0.95 + self.y_min
 
-        self.car = Vehicle(r = 0.15, P=[initial_x, initial_y], F=(target_x, target_y), theta=0, throttle=0, steer=0)
+        self.car = Vehicle(r = 0.05, P=[initial_x, initial_y], F=(target_x, target_y), theta=0, throttle=0, steer=0)
 
         self.current_state = np.zeros(self.memory_size * self.observation_count, dtype=np_dtype)
         self.memory_empty = True
@@ -377,19 +377,106 @@ class Environment:
         y2 = self.y_max
         obstacles.append(Obstacle(x1, y1, x2, y2))
         
-        
-        # horizontal line
-        x1 = (self.x_max - self.x_min) * 0.2 + self.x_min
-        y1 = (self.y_max - self.y_min) * 0.65 + self.y_min
+        # Hallway obstacle 1 - Another classroom
+        x1 = (self.x_max - self.x_min) * 0.1 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.4 + self.y_min
         x2 = (self.x_max - self.x_min) * 1 + self.x_min
-        y2 = (self.y_max - self.y_min) * 0.65 + self.y_min
+        y2 = (self.y_max - self.y_min) * 0.4 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = (self.x_max - self.x_min) * 0.1 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.4 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.1000001 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.8 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = (self.x_max - self.x_min) * 0.1 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.8 + self.y_min
+        x2 = (self.x_max - self.x_min) * 1 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.8 + self.y_min
         obstacles.append(Obstacle(x1, y1, x2, y2))
         
-        # vertical line
-        x1 = (self.x_max - self.x_min) * 0.2 + self.x_min
+        # Hallway obstacle 2 - More offices
+        x1 = (self.x_max - self.x_min) * 0.1 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.9 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.1000001 + self.x_min
+        y2 = (self.y_max - self.y_min) * 1 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = (self.x_max - self.x_min) * 0.1 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.9 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.8 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.9 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = (self.x_max - self.x_min) * 0.8 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.9 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.8000001 + self.x_min
+        y2 = (self.y_max - self.y_min) * 1 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        
+        # Hallway obstacle 3 - More offices
+        x1 = (self.x_max - self.x_min) * 0.9 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.9 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.9000001 + self.x_min
+        y2 = (self.y_max - self.y_min) * 1 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = (self.x_max - self.x_min) * 0.9 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.9 + self.y_min
+        x2 = (self.x_max - self.x_min) * 1 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.9 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        
+        # Classroom obstacle 1 - Walls
+        x1 = (self.x_max - self.x_min) * 0.1 + self.x_min
         y1 = (self.y_max - self.y_min) * 0 + self.y_min
-        x2 = (self.x_max - self.x_min) * 0.2000001 + self.x_min
-        y2 = (self.y_max - self.y_min) * 0.65 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.1000001 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.32 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = (self.x_max - self.x_min) * 0.6 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.6000001 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.4 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        
+        # Classroom obstacle 2 - Professor's Desk
+        x1 = (self.x_max - self.x_min) * 0.45 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.375 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.55 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.375 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = (self.x_max - self.x_min) * 0.55 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.325 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.55000001 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.375 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = (self.x_max - self.x_min) * 0.45 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.325 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.55 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.325 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = (self.x_max - self.x_min) * 0.45 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.325 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.45000001 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.375 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        
+        # Classroom obstacle 3 - Tables
+        x1 = (self.x_max - self.x_min) * 0.15 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.2875 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.55 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.2875 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = (self.x_max - self.x_min) * 0.15 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.2125 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.55 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.2125 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = (self.x_max - self.x_min) * 0.15 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.1375 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.55 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.1375 + self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = (self.x_max - self.x_min) * 0.15 + self.x_min
+        y1 = (self.y_max - self.y_min) * 0.0625 + self.y_min
+        x2 = (self.x_max - self.x_min) * 0.55 + self.x_min
+        y2 = (self.y_max - self.y_min) * 0.0625 + self.y_min
         obstacles.append(Obstacle(x1, y1, x2, y2))
         
         return obstacles
@@ -409,7 +496,7 @@ class Environment:
         """
 
         # proximity reward
-        w_p = 2
+        w_p = 5
         r_p = 0
 
         for i in reversed(range(self.d_bi + 1, self.d_bi + self.memory_size)):

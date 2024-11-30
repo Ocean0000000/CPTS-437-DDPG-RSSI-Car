@@ -19,6 +19,6 @@ seed = None
 
 # training configuration
 epoch_count = 1000
-hidden_neurons = 64
-hidden_layers = 2
+hidden_neurons = 128
+hidden_layers = 3
 save_freq = 20
