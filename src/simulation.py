@@ -137,10 +137,24 @@ class Environment:
 
         # target_x = rng.uniform(self.x_min, self.x_max)
         # target_y = rng.uniform(self.y_min, self.y_max)
+        
+        # Hallway w/turn
+        # initial_x = (self.x_max - self.x_min) * 0.05 + self.x_min
+        # initial_y = (self.y_max - self.y_min) * 0.05 + self.y_min
+        # target_x = (self.x_max - self.x_min) * 0.85 + self.x_min
+        # target_y = (self.x_max - self.x_min) * 0.95 + self.y_min
+        
+        # Hallway
         initial_x = (self.x_max - self.x_min) * 0.05 + self.x_min
         initial_y = (self.y_max - self.y_min) * 0.05 + self.y_min
-        target_x = (self.x_max - self.x_min) * 0.85 + self.x_min
+        target_x = (self.x_max - self.x_min) * 0.05 + self.x_min
         target_y = (self.x_max - self.x_min) * 0.95 + self.y_min
+        
+        # Free Area
+        # initial_x = (self.x_max - self.x_min) * 0.8 + self.x_min
+        # initial_y = (self.y_max - self.y_min) * 0.2 + self.y_min
+        # target_x = (self.x_max - self.x_min) * 0.95 + self.x_min
+        # target_y = (self.x_max - self.x_min) * 0.35 + self.y_min
 
         self.car = Vehicle(r = 0.05, P=[initial_x, initial_y], F=(target_x, target_y), theta=0, throttle=0, steer=0)
 

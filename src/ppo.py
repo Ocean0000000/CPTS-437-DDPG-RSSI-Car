@@ -96,7 +96,7 @@ class PPOBuffer:
 def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0, 
         steps_per_epoch=4000, epochs=200, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4,
         vf_lr=1e-3, train_pi_iters=80, train_v_iters=80, lam=0.95, max_ep_len=1000,
-        target_kl=0.01, save_freq=10):
+        target_kl=0.01, save_freq=10, checkpoint=None):
     """
     Proximal Policy Optimization (by clipping), 
 
@@ -195,6 +195,9 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
         save_freq (int): How often (in terms of gap between epochs) to save
             the current policy and value function.
+            
+        checkpoint (dict): Load a checkpoint with torch.load() and
+            start training again
 
     """
 
@@ -211,7 +214,10 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     act_dim = env.action_space.shape
 
     # Create actor-critic module
-    ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs).to(torch_device)
+    if checkpoint is None:
+        ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs).to(torch_device)
+    else:
+        ac = checkpoint["model"][0]
 
     # Count variables
     var_counts = tuple(core.count_vars(module) for module in [ac.pi, ac.v])
@@ -380,9 +386,11 @@ if __name__ == '__main__':
     env_function = lambda: sim.Environment(dt=dt, x_bounds=x_bounds, y_bounds=y_bounds, memory_size=memory_size, sensor_names=sensor_names,
                            obstacle_count=obstacle_count, obstacle_size=obstacle_size, seed=seed, render_type=None)
 
+    # checkpoint = torch.load("checkpoints/checkpoint_999.tar", map_location=torch_device)
+
     ppo(env_function,
         actor_critic=core.MLPActorCritic,
-        ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
+        ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=0.9, 
         seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq)
 
     fig, ax = plt.subplots(2,1, figsize=(9,16))

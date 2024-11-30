@@ -10,7 +10,7 @@ import os
 
 
 # LOAD MODULE
-checkpoint = torch.load("checkpoints/checkpoint_220.tar", map_location=torch_device)
+checkpoint = torch.load("checkpoints/checkpoint_860.tar", map_location=torch_device)
 ac = checkpoint["model"][0]
 ac.to(torch_device)
 
