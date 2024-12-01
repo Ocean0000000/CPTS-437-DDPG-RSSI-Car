@@ -96,7 +96,7 @@ class PPOBuffer:
 def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0, 
         steps_per_epoch=4000, epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4,
         vf_lr=1e-3, train_pi_iters=80, train_v_iters=80, lam=0.95, max_ep_len=1000,
-        target_kl=0.01, save_freq=50, checkpoint=None):
+        target_kl=0.01, save_freq=50, checkpoint_file:str=None):
     """
     Proximal Policy Optimization (by clipping), 
 
@@ -196,8 +196,8 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         save_freq (int): How often (in terms of gap between epochs) to save
             the current policy and value function.
             
-        checkpoint (dict): Load a checkpoint with torch.load() and
-            start training again
+        checkpoint_file (str): A checkpoint file path that must end in checkpoint_<number>.tar to work. 
+            ppo() will load the checkpoint with torch.load() and start training again.
 
     """
 
@@ -214,10 +214,15 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     act_dim = env.action_space.shape
 
     # Create actor-critic module
-    if checkpoint is None:
+    if checkpoint_file is None:
         ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs).to(torch_device)
     else:
+        checkpoint = torch.load(checkpoint_file, map_location=torch_device)
         ac = checkpoint["model"][0]
+        checkpoint_file = checkpoint_file.removesuffix(".tar")
+        checkpoint_epoch = int(checkpoint_file[checkpoint_file.rfind("_") + 1:])
+        epoch = checkpoint_epoch + 1
+        epochs += epoch
 
     # Count variables
     var_counts = tuple(core.count_vars(module) for module in [ac.pi, ac.v])
@@ -300,7 +305,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     o, ep_ret, ep_len = env.reset(), 0, 0
 
     # Main loop: collect experience in env and update/log each epoch
-    for epoch in range(epochs):
+    for epoch in range(epoch, epochs):
         for t in range(local_steps_per_epoch):
             a, v, logp = ac.step(torch.as_tensor(o, dtype=torch_dtype, device=torch_device))
 
@@ -393,11 +398,12 @@ if __name__ == '__main__':
     #     ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
     #     seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq)
     
-    checkpoint = torch.load("checkpoints/checkpoint_199.tar", map_location=torch_device)
+    checkpoint_file = "checkpoints/checkpoint_199.tar"
+    
     ppo(env_function,
     actor_critic=core.MLPActorCritic,
     ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
-    seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq, checkpoint=checkpoint)
+    seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq, checkpoint_file=checkpoint_file)
 
     fig, ax = plt.subplots(2,1, figsize=(9,16))
     ax[0].plot(epochs_plot, returns_plot, label="avg episode returns")

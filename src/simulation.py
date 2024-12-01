@@ -173,6 +173,9 @@ class Environment:
         if self.obstacle_type == "track" or self.obstacle_type == "field":
             initial_x = self.x_min
             target_x  = self.x_max
+            
+            initial_y = rng.uniform(self.y_min, self.y_max)
+            target_y  = rng.uniform(self.y_min, self.y_max)
         elif self.obstacle_type == "school":
             self.x_min = x_bounds[0]
             self.x_max = x_bounds[1]
@@ -445,6 +448,28 @@ class Environment:
 
         xs_m = []
         ys_m = []
+        
+        # environment bounds
+        x1 = self.x_min
+        y1 = self.y_max
+        x2 = self.x_max
+        y2 = self.y_max
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = self.x_max
+        y1 = self.y_min
+        x2 = self.x_max + 0.000001
+        y2 = self.y_max
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = self.x_min
+        y1 = self.y_min
+        x2 = self.x_max
+        y2 = self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = self.x_min
+        y1 = self.y_min
+        x2 = self.x_min + 0.000001
+        y2 = self.y_max
+        obstacles.append(Obstacle(x1, y1, x2, y2))
 
         for i in range(0, 1):
 
@@ -475,6 +500,28 @@ class Environment:
         self.y_span = self.y_max - self.y_min
 
         obstacles = []
+        
+        # environment bounds
+        x1 = self.x_min
+        y1 = self.y_max
+        x2 = self.x_max
+        y2 = self.y_max
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = self.x_max
+        y1 = self.y_min
+        x2 = self.x_max + 0.000001
+        y2 = self.y_max
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = self.x_min
+        y1 = self.y_min
+        x2 = self.x_max
+        y2 = self.y_min
+        obstacles.append(Obstacle(x1, y1, x2, y2))
+        x1 = self.x_min
+        y1 = self.y_min
+        x2 = self.x_min + 0.000001
+        y2 = self.y_max
+        obstacles.append(Obstacle(x1, y1, x2, y2))
 
         for i in range(self.obstacle_count):
 
