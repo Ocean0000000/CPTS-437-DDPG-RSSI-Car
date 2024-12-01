@@ -216,12 +216,13 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     # Create actor-critic module
     if checkpoint_file is None:
         ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs).to(torch_device)
+        checkpoint_epoch = 0
     else:
         checkpoint = torch.load(checkpoint_file, map_location=torch_device)
         ac = checkpoint["model"][0]
         checkpoint_file = checkpoint_file.removesuffix(".tar")
         checkpoint_epoch = int(checkpoint_file[checkpoint_file.rfind("_") + 1:]) + 1
-
+        
     # Count variables
     var_counts = tuple(core.count_vars(module) for module in [ac.pi, ac.v])
     logger.log('\nNumber of parameters: \t pi: %d, \t v: %d\n'%var_counts)
@@ -340,7 +341,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
 
         # Save model
-        if (epoch % save_freq == 0) or (epoch == (checkpoint_epoch if checkpoint_epoch else 0) + epochs - 1):
+        if (epoch % save_freq == 0) or (epoch == checkpoint_epoch + epochs - 1):
             logger.store(environment=env)
             logger.store(model=ac)
             logger.save_state(f"checkpoints/checkpoint_{epoch}.tar")
@@ -352,7 +353,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         returns_plot.append(core.avg(logger.logger_dict['EpRet']))
         lengths_plot.append(core.avg(logger.logger_dict['EpLen']))
 
-        logger.log(f"            Epoch: {epoch}/{(checkpoint_epoch if checkpoint_epoch else 0) + epochs}")
+        logger.log(f"            Epoch: {epoch}/{checkpoint_epoch + epochs}")
         logger.log(f"            EpRet: {core.avg(logger.logger_dict['EpRet'])}")
         logger.log(f"            EpLen: {core.avg(logger.logger_dict['EpLen'])}")
         logger.log(f"            VVals: {core.avg(logger.logger_dict['VVals'])}")
@@ -392,17 +393,17 @@ if __name__ == '__main__':
                            obstacle_types=obstacle_types, obstacle_proportions=obstacle_proportions)
     
     
-    # ppo(env_function,
-    #     actor_critic=core.MLPActorCritic,
-    #     ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
-    #     seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq)
-    
-    checkpoint_file = "checkpoints/checkpoint_199.tar"
-    
     ppo(env_function,
-    actor_critic=core.MLPActorCritic,
-    ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
-    seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq, checkpoint_file=checkpoint_file)
+        actor_critic=core.MLPActorCritic,
+        ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
+        seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq)
+    
+    # checkpoint_file = "checkpoints/checkpoint_380.tar"
+    
+    # ppo(env_function,
+    # actor_critic=core.MLPActorCritic,
+    # ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
+    # seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq, checkpoint_file=checkpoint_file)
 
     fig, ax = plt.subplots(2,1, figsize=(9,16))
     ax[0].plot(epochs_plot, returns_plot, label="avg episode returns")
