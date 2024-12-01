@@ -3,9 +3,7 @@ import scipy.signal
 from simulation import Box, Discrete
 
 import torch
-torch_dtype = torch.float32
-np_dtype = np.float32
-torch_device = torch.device("cuda")
+from config import torch_dtype, np_dtype, torch_device
 torch.set_default_dtype(torch_dtype)
 
 import torch.nn as nn
