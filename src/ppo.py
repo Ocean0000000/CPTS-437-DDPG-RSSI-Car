@@ -94,9 +94,9 @@ class PPOBuffer:
 
 
 def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0, 
-        steps_per_epoch=4000, epochs=200, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4,
+        steps_per_epoch=4000, epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4,
         vf_lr=1e-3, train_pi_iters=80, train_v_iters=80, lam=0.95, max_ep_len=1000,
-        target_kl=0.01, save_freq=10, checkpoint=None):
+        target_kl=0.01, save_freq=50, checkpoint=None):
     """
     Proximal Policy Optimization (by clipping), 
 
@@ -377,20 +377,21 @@ if __name__ == '__main__':
     parser.add_argument('--l', type=int, default=hidden_layers)
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--seed', '-s', type=int, default=0)
-    parser.add_argument('--cuda', type=int, default=4)
+    parser.add_argument('--cpu', type=int, default=4)
     parser.add_argument('--steps', type=int, default=4000)
     parser.add_argument('--epochs', type=int, default=epoch_count)
     parser.add_argument('--exp_name', type=str, default='ppo')
     args = parser.parse_args()
 
     env_function = lambda: sim.Environment(dt=dt, x_bounds=x_bounds, y_bounds=y_bounds, memory_size=memory_size, sensor_names=sensor_names,
-                           obstacle_count=obstacle_count, obstacle_size=obstacle_size, seed=seed, render_type=None)
-
+                           obstacle_count=obstacle_count, obstacle_size=obstacle_size, seed=seed, render_type=None,
+                           obstacle_types=obstacle_types, obstacle_proportions=obstacle_proportions)
+    
     # checkpoint = torch.load("checkpoints/checkpoint_999.tar", map_location=torch_device)
-
+    
     ppo(env_function,
         actor_critic=core.MLPActorCritic,
-        ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=0.9, 
+        ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
         seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq)
 
     fig, ax = plt.subplots(2,1, figsize=(9,16))

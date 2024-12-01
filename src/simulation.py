@@ -8,6 +8,23 @@ import time
 import copy
 import os
 
+def normal_2d(x_1: float, y_1: float, x_2: float, y_2: float) -> tuple[float]:
+    """
+    returns the components x_n, y_n of the vector normal to the given line segment
+    """
+
+    dx = x_2 - x_1
+    dy = y_2 - y_1
+
+    normal_direction = np.array([-dy, dx])
+
+    norm = np.linalg.norm(normal_direction)
+    if norm == 0:
+        raise ValueError("Zero-length segment; normal is undefined.")
+    normal = normal_direction / norm
+
+    return normal[0], normal[1]
+
 class Box():
 
     def __init__(self, low: np.ndarray, high: np.ndarray, dtype: str = 'float32') -> None:
@@ -79,19 +96,23 @@ class Environment:
     def __init__(self, dt: float, x_bounds: list[float], y_bounds: list[float],
                  memory_size: int = 10, sensor_names: list[str] = None,
                  obstacle_count: int = 2, obstacle_size: float = 0.5,
+                 obstacle_types: list[str] = None, obstacle_proportions: list[float] = None,
                  seed: int = None, render_type: str = None, nn_control: Callable = None) -> None:
         """
         :param dt: step size of the simulation
-        :param x_bounds: a list [x_min, x_max]
-        :param y_bounds: a list [y_min, y_max]
+        :param x_bounds: a list [x_min, x_max] from which the bounds of the domain will be randomly generated
+        :param y_bounds: a list [y_min, y_max] from which the bounds of the domain will be randomly generated
         :param memory_size: how large the model's memory is (NOT THE PPO EPISODE BUFFER).
         :param sensor_names: a list with the names ('front', 'left', 'back', 'right') of the sensors to be active in the simulation.
         :param obstacle_count: how many obstacles
         :param obstacle size: how big the obstacles are in relation to the space.
+        :param obstacle_types: what obstacle types you want to use ["random", "track", "school", "field", "wall", "rooms"]
+        :param obstacle_proportions: what proportions do each of the obstacle types get when randomly generating (must be of same length as obstacle_types). Defaults to equal proportions.
         :param seed: a random initial seed for the environment generation
         :param render type: whether to render with pygame ("human") or not at all (None). Use None for training.
         :param nn_control: if "human" render_type is used, but actor-critic control is desired, pass the actor critic model here to give it control. Otherwise, human control will be used
         """
+
         self.sensor_names = sensor_names
 
         if sensor_names is None:
@@ -100,6 +121,16 @@ class Environment:
             self.observation_count = 1 + len(self.sensor_names)
 
         self.memory_size = memory_size
+
+        self.obstacle_types = obstacle_types
+        self.obstacle_proportions = obstacle_proportions
+
+        if self.obstacle_types is not None:
+            if self.obstacle_proportions is None:
+                self.obstacle_proportions = [1/len(self.obstacle_types)] * len(self.obstacle_types)# <- default to equal proportions
+            else:
+                assert(len(self.obstacle_proportions) == len(self.obstacle_types))
+
         self.obstacle_count = obstacle_count
         self.obstacle_size = obstacle_size
 
@@ -108,11 +139,6 @@ class Environment:
         self.action_space = Box(low=np.array([-1,-1]), high=np.array([1,1]))
 
         self.dt = dt
-        self.x_min = x_bounds[0]
-        self.x_max = x_bounds[1]
-
-        self.y_min = y_bounds[0]
-        self.y_max = y_bounds[1]
 
         self.render_type = render_type
         self.nn_control = nn_control
@@ -131,39 +157,63 @@ class Environment:
         else:
             rng = np.random.default_rng()
 
+        if self.obstacle_types is not None:
+            self.obstacle_type = np.random.choice(self.obstacle_types, p=self.obstacle_proportions)
+        else:
+            self.obstacle_type = "default"
 
-        # initial_x = rng.uniform(self.x_min, self.x_max)
-        # initial_y = rng.uniform(self.y_min, self.y_max)
+        self.bounce_guard = 0
 
-        # target_x = rng.uniform(self.x_min, self.x_max)
-        # target_y = rng.uniform(self.y_min, self.y_max)
-        
-        # Hallway w/turn
-        # initial_x = (self.x_max - self.x_min) * 0.05 + self.x_min
-        # initial_y = (self.y_max - self.y_min) * 0.05 + self.y_min
-        # target_x = (self.x_max - self.x_min) * 0.85 + self.x_min
-        # target_y = (self.x_max - self.x_min) * 0.95 + self.y_min
-        
-        # Hallway
-        initial_x = (self.x_max - self.x_min) * 0.05 + self.x_min
-        initial_y = (self.y_max - self.y_min) * 0.05 + self.y_min
-        target_x = (self.x_max - self.x_min) * 0.05 + self.x_min
-        target_y = (self.x_max - self.x_min) * 0.95 + self.y_min
-        
-        # Free Area
-        # initial_x = (self.x_max - self.x_min) * 0.8 + self.x_min
-        # initial_y = (self.y_max - self.y_min) * 0.2 + self.y_min
-        # target_x = (self.x_max - self.x_min) * 0.95 + self.x_min
-        # target_y = (self.x_max - self.x_min) * 0.35 + self.y_min
+        self.x_min = -rng.uniform(x_bounds[0], x_bounds[1]) 
+        self.x_max =  rng.uniform(x_bounds[0], x_bounds[1])
 
-        self.car = Vehicle(r = 0.05, P=[initial_x, initial_y], F=(target_x, target_y), theta=0, throttle=0, steer=0)
+        self.y_min = -rng.uniform(y_bounds[0], y_bounds[1]) 
+        self.y_max =  rng.uniform(y_bounds[0], y_bounds[1])
+
+        if self.obstacle_type == "track" or self.obstacle_type == "field":
+            initial_x = self.x_min
+            target_x  = self.x_max
+        elif self.obstacle_type == "school":
+            self.x_min = x_bounds[0]
+            self.x_max = x_bounds[1]
+            self.y_min = y_bounds[0]
+            self.y_max = y_bounds[1]
+            
+            # Hallway w/turn
+            # initial_x = (self.x_max - self.x_min) * 0.05 + self.x_min
+            # initial_y = (self.y_max - self.y_min) * 0.05 + self.y_min
+            # target_x = (self.x_max - self.x_min) * 0.85 + self.x_min
+            # target_y = (self.x_max - self.x_min) * 0.95 + self.y_min
+            
+            # Hallway
+            initial_x = (self.x_max - self.x_min) * 0.05 + self.x_min
+            initial_y = (self.y_max - self.y_min) * 0.05 + self.y_min
+            target_x = (self.x_max - self.x_min) * 0.05 + self.x_min
+            target_y = (self.x_max - self.x_min) * 0.95 + self.y_min
+            
+            # Free Area
+            # initial_x = (self.x_max - self.x_min) * 0.8 + self.x_min
+            # initial_y = (self.y_max - self.y_min) * 0.2 + self.y_min
+            # target_x = (self.x_max - self.x_min) * 0.95 + self.x_min
+            # target_y = (self.x_max - self.x_min) * 0.35 + self.y_min
+        else:
+            initial_x = rng.uniform(self.x_min, self.x_max)
+            target_x  = rng.uniform(self.x_min, self.x_max)
+            
+            initial_y = rng.uniform(self.y_min, self.y_max)
+            target_y  = rng.uniform(self.y_min, self.y_max)
+
+        self.car = Vehicle(r = 0.15, P=[initial_x, initial_y], F=(target_x, target_y), theta=0, throttle=0, steer=0)
+
+        self.collision_tolerance = self.car.r
+        self.target_tolerance = 0.1
+        self.collided = False
 
         self.current_state = np.zeros(self.memory_size * self.observation_count, dtype=np_dtype)
         self.memory_empty = True
         self.time_elapsed = 0
 
-        # self.obstacles = self._create_obstacles(seed)
-        self.obstacles = self._create_obstacle_course()
+        self.obstacles = self._create_obstacles(seed)
         self.closest_distance = {}
         self.closest_obstacle = {}
         self.intersections_x = {}
@@ -188,6 +238,11 @@ class Environment:
         self.car.steer = action[1]
         self.car.step(dt=self.dt)
 
+        self.collided = False
+        self.bounce_guard += 1
+        if self.bounce_guard > 10:
+            self._check_for_collision()
+
         new_state = self._update_state()
 
         reward = self._get_reward(new_state, old_state, action)
@@ -196,12 +251,12 @@ class Environment:
         self.episode_return += reward
         self.steer_history.append(action[1])
 
-        terminal_flag = self._update_terminal_flag(new_state)
+        self._update_terminal_flag(new_state)
 
         self.time_elapsed += self.dt
 
 
-        return new_state, reward, terminal_flag, 0 # <- PPO assumes step returns a 4th thing but ignores it
+        return new_state, reward, self.is_terminal, 0 # <- PPO assumes step returns a 4th thing but ignores it
 
 
     def render(self) -> None:
@@ -247,20 +302,21 @@ class Environment:
 
             self.fig.plot(x, y, name=f'carline_{i}', color=color)
 
-        for i, obstacle in enumerate(self.obstacles):
+        if self.obstacles is not None:
+            for i, obstacle in enumerate(self.obstacles):
 
-            line = obstacle.get_line()
-            x = line["x"]
-            y = line["y"]
+                line = obstacle.get_line()
+                x = line["x"]
+                y = line["y"]
 
-            color = (255, 255, 255)
-            for name, closest_obstacle in self.closest_obstacle.items():
+                color = (255, 255, 255)
+                for name, closest_obstacle in self.closest_obstacle.items():
 
-                if obstacle == closest_obstacle:
+                    if obstacle == closest_obstacle:
 
-                    color = self.sensor_colors[name]
+                        color = self.sensor_colors[name]
 
-            self.fig.plot(x, y, name=f"obstacle_{i}", color=color)
+                self.fig.plot(x, y, name=f"obstacle_{i}", color=color)
         
         if self.sensor_names is not None:
             for name in self.sensor_names:
@@ -303,16 +359,17 @@ class Environment:
                 user_variables[f'carline_{i}'].x = x
                 user_variables[f'carline_{i}'].y = y
 
-            for i, obstacle in enumerate(self.obstacles):
+            if self.obstacles is not None:
+                for i, obstacle in enumerate(self.obstacles):
 
-                color = (255, 255, 255)
-                for name, closest_obstacle in self.closest_obstacle.items():
+                    color = (255, 255, 255)
+                    for name, closest_obstacle in self.closest_obstacle.items():
 
-                    if obstacle == closest_obstacle:
+                        if obstacle == closest_obstacle:
 
-                        color = self.sensor_colors[name]
+                            color = self.sensor_colors[name]
 
-                user_variables[f'obstacle_{i}'].color = color
+                    user_variables[f'obstacle_{i}'].color = color
 
             if self.sensor_names is not None:
                 for name in self.sensor_names:
@@ -344,6 +401,71 @@ class Environment:
         return action
 
     def _create_obstacles(self, seed: int = None) -> list[Obstacle]:
+
+        if self.obstacle_type is None:
+            return None
+        elif self.obstacle_type == "track":
+            return self._track_obstacles(seed)
+        elif self.obstacle_type == "field":
+            return self._field_obstacles(seed)
+        elif self.obstacle_type == "wall":
+            return self._wall_obstacles(seed)
+        elif self.obstacle_type == "school":
+            return self._create_school_obstacles()
+        elif self.obstacle_type == "random":
+            return self._random_obstacles(seed)
+        else:
+            raise ValueError(f"unknown obstacle type {self.obstacle_type}")
+
+
+    def _track_obstacles(self, seed: int = None) -> list[Obstacle]:
+
+        if seed is not None:
+            rng = np.random.default_rng(seed)
+        else:
+            rng = np.random.default_rng()
+
+        x_car = self.car.P[0] 
+        y_car = self.car.P[1]
+
+        x_target = self.car.F[0]
+        y_target = self.car.F[1]
+
+        obstacles = []
+
+        path_span = abs(x_car - x_target)
+        segment_size = path_span/2
+
+        xs = np.linspace(x_car, x_target, 3)
+        noise = np.hstack([np.zeros(1), rng.normal(loc=0, scale=segment_size/10, size=1), np.zeros(1)]) # <- no noise at the ends
+        xs = xs + noise
+        ys = np.linspace(y_car, y_target, 3)
+        noise = np.hstack([np.zeros(1), rng.normal(loc=0, scale=path_span/20, size=1), np.zeros(1)]) # <- no noise at the ends
+        ys = ys + noise
+
+        xs_m = []
+        ys_m = []
+
+        for i in range(0, 1):
+
+            x_1 = xs[i]
+            x_2 = xs[i+1]
+            
+            y_1 = ys[i]
+            y_2 = ys[i+1]
+            
+            x_n, y_n = normal_2d(x_1, y_1, x_2, y_2)
+            x_n, y_n = 2*x_n*self.car.r, 2*y_n*self.car.r
+
+            obstacles.append(Obstacle(x_1+x_n, y_1+y_n, x_2+x_n, y_2+y_n))
+            obstacles.append(Obstacle(x_1-x_n, y_1-y_n, x_2-x_n, y_2-y_n))
+
+        return obstacles
+
+
+    def _random_obstacles(self, seed: int = None) -> list[Obstacle]:
+
+
         if seed is not None:
             rng = np.random.default_rng(seed)
         else:
@@ -366,7 +488,7 @@ class Environment:
 
         return obstacles
 
-    def _create_obstacle_course(self) -> list[Obstacle]:
+    def _create_school_obstacles(self) -> list[Obstacle]:
         obstacles = []
         
         # environment bounds
@@ -510,7 +632,7 @@ class Environment:
         """
 
         # proximity reward
-        w_p = 5
+        w_p = 1
         r_p = 0
 
         for i in reversed(range(self.d_bi + 1, self.d_bi + self.memory_size)):
@@ -521,8 +643,8 @@ class Environment:
         # NOTE: r_p is used in some of the remaning rewards as a 'scaling factor' to make sure all rewards are of approximately the same scale
 
         # crash penalty
-        w_c = -30
-        r_c = int(self.bad_terminal)
+        w_c = -2
+        r_c = int(self.collided)
 
         # goal reward
         w_g = 30
@@ -547,6 +669,40 @@ class Environment:
 
         return r_p*w_p + r_g*w_g + r_c*w_c + r_t*w_t + r_s*w_s
 
+    def _check_for_collision(self) -> None:
+
+        x_P = self.car.P[0]
+        y_P = self.car.P[1]
+
+        for obstacle in self.obstacles:
+
+            x_1 = obstacle.x_1
+            y_1 = obstacle.y_1
+
+            x_2 = obstacle.x_2
+            y_2 = obstacle.y_2
+
+            m_o = (y_2 - y_1)/(x_2 - x_1 + np.finfo(float).eps) # <- the slope of the obstacle line
+            m_s = -1/(m_o + np.finfo(float).eps) # <- slope of perpendicular line
+            gamma = np.arctan(m_o)
+
+            # calculate point of intersection obstacle line and perpendicular line that goes through center of car
+            x_intersection = (m_o * x_1 - m_s * x_P + y_P - y_1)/(m_o - m_s)
+            y_intersection = obstacle.y(x_intersection)
+
+            # check if it is a valid intersection
+            intersects_obstacle =  (x_intersection > min(x_1, x_2)) and (x_intersection < max(x_1, x_2))
+
+            # calculate sensor measurement
+            if intersects_obstacle:
+
+                distance = np.sqrt( (x_P - x_intersection)**2 + (y_P - y_intersection)**2 )
+
+                if distance <= self.collision_tolerance:
+                    self.car.reorient(gamma)
+                    self.collided = True
+                    self.bounce_guard = 0 # <- reset guard (won't be able to bounce again for 4 steps)
+
 
     def _update_state(self) -> np.ndarray:
         """
@@ -559,7 +715,8 @@ class Environment:
         # get target distance measurement
         d = self.car.F - self.car.P
         d = np.sqrt(d.T @ d)
-
+        
+        # check sensors
         if self.sensor_names is not None:
 
             # assign base indices
@@ -604,19 +761,20 @@ class Environment:
         calculate whether the state is terminal or not, and if terminal, whether it is good terminal or bad terminal
         """
 
-        collision_tolerance = 0.1
-        target_tolerance = 0.1
+        
         
         # check for collision
         if self.sensor_names is not None:
             self.bad_terminal = False
             for name in self.sensor_names:
-                self.bad_terminal += state[self.s_bi[name]] < collision_tolerance # <- this is basically an OR operation, checking if any of the sensors report a collision
+                self.bad_terminal += state[self.s_bi[name]] < self.collision_tolerance # <- this is basically an OR operation, checking if any of the sensors report a collision
         else:
             self.bad_terminal = False # <- if no sensors, no collisions can be detected
+            
+        # self.bad_terminal = False
 
         # check for target reached
-        self.good_terminal = state[self.d_bi] < target_tolerance
+        self.good_terminal = state[self.d_bi] < self.target_tolerance
 
         self.is_terminal = 1 * ((self.good_terminal) or (self.bad_terminal)) 
 
@@ -627,6 +785,8 @@ class Environment:
         """
         basic 'line of sight' intersection calculations
         """
+        if self.obstacles is None:
+            return MAX_SENSOR_MEASUREMENT
         
         # select correct sensor by getting its coordinates
         if sensor_name == "front":
@@ -732,5 +892,6 @@ if __name__ == '__main__':
 
     while True:
         env = Environment(dt=dt, x_bounds=x_bounds, y_bounds=y_bounds, memory_size=memory_size, sensor_names=sensor_names,
-                          obstacle_count=obstacle_count, obstacle_size=obstacle_size, seed=seed, render_type="human")
+                          obstacle_count=obstacle_count, obstacle_size=obstacle_size, seed=seed, render_type="human",
+                          obstacle_types=obstacle_types, obstacle_proportions=obstacle_proportions)
         env.render()
