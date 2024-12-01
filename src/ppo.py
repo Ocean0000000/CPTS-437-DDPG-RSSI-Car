@@ -387,12 +387,17 @@ if __name__ == '__main__':
                            obstacle_count=obstacle_count, obstacle_size=obstacle_size, seed=seed, render_type=None,
                            obstacle_types=obstacle_types, obstacle_proportions=obstacle_proportions)
     
-    # checkpoint = torch.load("checkpoints/checkpoint_999.tar", map_location=torch_device)
     
+    # ppo(env_function,
+    #     actor_critic=core.MLPActorCritic,
+    #     ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
+    #     seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq)
+    
+    checkpoint = torch.load("checkpoints/checkpoint_199.tar", map_location=torch_device)
     ppo(env_function,
-        actor_critic=core.MLPActorCritic,
-        ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
-        seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq)
+    actor_critic=core.MLPActorCritic,
+    ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
+    seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq, checkpoint=checkpoint)
 
     fig, ax = plt.subplots(2,1, figsize=(9,16))
     ax[0].plot(epochs_plot, returns_plot, label="avg episode returns")
