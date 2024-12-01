@@ -340,7 +340,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
 
         # Save model
-        if (epoch % save_freq == 0) or (epoch == epochs-1):
+        if (epoch % save_freq == 0) or (epoch == (checkpoint_epoch if checkpoint_epoch else 0) + epochs - 1):
             logger.store(environment=env)
             logger.store(model=ac)
             logger.save_state(f"checkpoints/checkpoint_{epoch}.tar")
@@ -352,7 +352,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         returns_plot.append(core.avg(logger.logger_dict['EpRet']))
         lengths_plot.append(core.avg(logger.logger_dict['EpLen']))
 
-        logger.log(f"            Epoch: {epoch}/{checkpoint_epoch + epochs}")
+        logger.log(f"            Epoch: {epoch}/{(checkpoint_epoch if checkpoint_epoch else 0) + epochs}")
         logger.log(f"            EpRet: {core.avg(logger.logger_dict['EpRet'])}")
         logger.log(f"            EpLen: {core.avg(logger.logger_dict['EpLen'])}")
         logger.log(f"            VVals: {core.avg(logger.logger_dict['VVals'])}")
