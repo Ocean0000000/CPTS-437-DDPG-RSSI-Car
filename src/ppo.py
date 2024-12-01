@@ -212,7 +212,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     env = env_fn()
     obs_dim = env.observation_space.shape
     act_dim = env.action_space.shape
-
+    
     # Create actor-critic module
     if checkpoint_file is None:
         ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs).to(torch_device)
@@ -220,9 +220,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         checkpoint = torch.load(checkpoint_file, map_location=torch_device)
         ac = checkpoint["model"][0]
         checkpoint_file = checkpoint_file.removesuffix(".tar")
-        checkpoint_epoch = int(checkpoint_file[checkpoint_file.rfind("_") + 1:])
-        epoch = checkpoint_epoch + 1
-        epochs += epoch
+        checkpoint_epoch = int(checkpoint_file[checkpoint_file.rfind("_") + 1:]) + 1
 
     # Count variables
     var_counts = tuple(core.count_vars(module) for module in [ac.pi, ac.v])
@@ -305,7 +303,8 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     o, ep_ret, ep_len = env.reset(), 0, 0
 
     # Main loop: collect experience in env and update/log each epoch
-    for epoch in range(epoch, epochs):
+    for epoch in range(checkpoint_epoch, checkpoint_epoch + epochs):
+        
         for t in range(local_steps_per_epoch):
             a, v, logp = ac.step(torch.as_tensor(o, dtype=torch_dtype, device=torch_device))
 
@@ -353,7 +352,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         returns_plot.append(core.avg(logger.logger_dict['EpRet']))
         lengths_plot.append(core.avg(logger.logger_dict['EpLen']))
 
-        logger.log(f"            Epoch: {epoch}/{epochs}")
+        logger.log(f"            Epoch: {epoch}/{checkpoint_epoch + epochs}")
         logger.log(f"            EpRet: {core.avg(logger.logger_dict['EpRet'])}")
         logger.log(f"            EpLen: {core.avg(logger.logger_dict['EpLen'])}")
         logger.log(f"            VVals: {core.avg(logger.logger_dict['VVals'])}")
