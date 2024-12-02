@@ -177,9 +177,9 @@ class Environment:
             initial_y = rng.uniform(self.y_min, self.y_max)
             target_y  = rng.uniform(self.y_min, self.y_max)
         elif self.obstacle_type == "school":
-            self.x_min = x_bounds[0]
+            self.x_min = -x_bounds[0]
             self.x_max = x_bounds[1]
-            self.y_min = y_bounds[0]
+            self.y_min = -y_bounds[0]
             self.y_max = y_bounds[1]
             
             # Hallway w/turn
@@ -189,10 +189,36 @@ class Environment:
             # target_y = (self.x_max - self.x_min) * 0.95 + self.y_min
             
             # Hallway
+            setups = []
             initial_x = (self.x_max - self.x_min) * 0.05 + self.x_min
             initial_y = (self.y_max - self.y_min) * 0.05 + self.y_min
             target_x = (self.x_max - self.x_min) * 0.05 + self.x_min
-            target_y = (self.x_max - self.x_min) * 0.95 + self.y_min
+            target_y = (self.y_max - self.y_min) * 0.95 + self.y_min
+            setups.append([initial_x, initial_y, target_x, target_y])
+            
+            initial_x = (self.x_max - self.x_min) * 0.05 + self.x_min
+            initial_y = (self.y_max - self.y_min) * 0.95 + self.y_min
+            target_x = (self.x_max - self.x_min) * 0.05 + self.x_min
+            target_y = (self.y_max - self.y_min) * 0.05 + self.y_min
+            setups.append([initial_x, initial_y, target_x, target_y])
+            
+            initial_x = (self.x_max - self.x_min) * 0.05 + self.x_min
+            initial_y = (self.y_max - self.y_min) * 0.85 + self.y_min
+            target_x = (self.x_max - self.x_min) * 0.95 + self.x_min
+            target_y = (self.y_max - self.y_min) * 0.85 + self.y_min
+            setups.append([initial_x, initial_y, target_x, target_y])
+            
+            initial_x = (self.x_max - self.x_min) * 0.95 + self.x_min
+            initial_y = (self.y_max - self.y_min) * 0.85 + self.y_min
+            target_x = (self.x_max - self.x_min) * 0.05 + self.x_min
+            target_y = (self.y_max - self.y_min) * 0.85 + self.y_min
+            setups.append([initial_x, initial_y, target_x, target_y])
+            
+            random_setup = rng.choice(setups)
+            initial_x, initial_y, target_x, target_y = random_setup
+            
+            # initial_y = rng.uniform(self.y_min, self.y_max)
+            # target_y  = rng.uniform(self.y_min, self.y_max)
             
             # Free Area
             # initial_x = (self.x_max - self.x_min) * 0.8 + self.x_min
