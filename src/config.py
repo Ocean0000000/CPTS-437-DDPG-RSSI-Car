@@ -9,8 +9,8 @@ torch_device = torch.device("cpu")
 # environment configuration
 MAX_SENSOR_MEASUREMENT = 0.5
 dt = 1/30
-x_bounds = [-5, 5]
-y_bounds = [-5, 5]
+x_bounds = [5, 5]
+y_bounds = [5, 5]
 memory_size = 5
 sensor_names = ["front", "right", "left", "back"]
 obstacle_proportions = None
@@ -21,6 +21,6 @@ seed = None
 
 # training configuration
 epoch_count = 200
-hidden_neurons = 64
+hidden_neurons = 128
 hidden_layers = 2
 save_freq = 20

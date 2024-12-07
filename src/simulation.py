@@ -713,8 +713,9 @@ class Environment:
 
         self._update_terminal_flag(new_state)
 
-        # NOTE: r_p is used in some of the remaning rewards as a 'scaling factor' to make sure all rewards are of approximately the same scale
+        # NOTE: r_p is used in some of the remaining rewards as a 'scaling factor' to make sure all rewards are of approximately the same scale
 
+        
         # crash penalty
         w_c = -2
         r_c = int(self.collided)

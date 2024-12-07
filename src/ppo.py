@@ -393,17 +393,18 @@ if __name__ == '__main__':
                            obstacle_types=obstacle_types, obstacle_proportions=obstacle_proportions)
     
     
+    # ppo(env_function,
+    #     actor_critic=core.MLPActorCritic,
+    #     ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
+    #     seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq, 
+    #     clip_ratio=0.1, pi_lr=1e-4, max_ep_len=2000)
+    
+    checkpoint_file = "checkpoints/checkpoint_199.tar"
     ppo(env_function,
         actor_critic=core.MLPActorCritic,
         ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
-        seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq)
-    
-    # checkpoint_file = "checkpoints/checkpoint_380.tar"
-    
-    # ppo(env_function,
-    # actor_critic=core.MLPActorCritic,
-    # ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
-    # seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq, checkpoint_file=checkpoint_file)
+        seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq, checkpoint_file=checkpoint_file,
+        clip_ratio=0.1, pi_lr=1e-4, max_ep_len=2000)
 
     fig, ax = plt.subplots(2,1, figsize=(9,16))
     ax[0].plot(epochs_plot, returns_plot, label="avg episode returns")
