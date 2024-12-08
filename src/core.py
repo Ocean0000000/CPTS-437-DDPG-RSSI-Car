@@ -1,20 +1,22 @@
+"""
+Adapted from OpenAI's SpinningUp PPO implementation
+"""
+from config import *
 import numpy as np
-import scipy.signal
-from simulation import Box, Discrete
-
 import torch
-from config import torch_dtype, np_dtype, torch_device
 torch.set_default_dtype(torch_dtype)
 
+import scipy.signal
+from simulation import Box, Discrete
 import torch.nn as nn
 from torch.distributions.normal import Normal
 from torch.distributions.categorical import Categorical
-
 
 def statistics(x) -> tuple[float, float]:
     x = np.array(x, dtype=np_dtype)
 
     return np.mean(x), np.std(x)
+
 
 def avg(x) -> float:
 
@@ -98,7 +100,7 @@ class MLPGaussianActor(Actor):
         super().__init__()
         log_std = -0.5 * np.ones(act_dim, dtype=np_dtype)
         self.log_std = torch.nn.Parameter(torch.as_tensor(log_std))
-        self.mu_net = mlp([obs_dim] + list(hidden_sizes) + [act_dim], activation).to(torch_device)
+        self.mu_net = mlp([obs_dim] + list(hidden_sizes) + [act_dim], activation)
 
     def _distribution(self, obs):
         mu = self.mu_net(obs)
@@ -140,7 +142,6 @@ class MLPActorCritic(nn.Module):
 
     def step(self, obs):
         with torch.no_grad():
-            obs = obs.to(self.pi.mu_net[0].weight.device)
             pi = self.pi._distribution(obs)
             a = pi.sample()
             logp_a = self.pi._log_prob_from_distribution(pi, a)

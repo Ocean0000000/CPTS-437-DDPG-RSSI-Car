@@ -1,17 +1,21 @@
+"""
+Adapted from OpenAI's SpinningUp PPO implementation
+"""
+from config import *
+import numpy as np
 import torch
-torch.set_default_dtype(torch.float64)
+torch.set_default_dtype(torch_dtype)
 
 import os
 
 class Logger():
 
-    def __init__(self, location: str = None) -> None:
+    def __init__(self) -> None:
         
-        if location == None:
-            os.system('mkdir logs')
-            self.location = 'logs'
+        os.makedirs("logs", exist_ok=True)
+        self.location = 'logs'
 
-        self.logger_dict = {}
+        self.epoch_dict = {}
 
 
     def log(self, message: str) -> None:
@@ -23,6 +27,7 @@ class Logger():
             f.write(message + "\n")
         print(message)
 
+
     def store(self, **kwargs) -> None:
         """
         Save something into the logger's current dict
@@ -32,14 +37,6 @@ class Logger():
         """
 
         for k,v in kwargs.items():
-            if not(k in self.logger_dict.keys()):
-                self.logger_dict[k] = []
-            self.logger_dict[k].append(v)
-
-    def save_state(self, filename: str) -> None:
-        """
-        Save the current log dict
-        """
-
-        torch.save(self.logger_dict, filename)
-
+            if not(k in self.epoch_dict.keys()):
+                self.epoch_dict[k] = []
+            self.epoch_dict[k].append(v)

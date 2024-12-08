@@ -1,3 +1,7 @@
+"""
+a simple 2D rigid kinematics car model with euler stepping
+"""
+from config import *
 import numpy as np
 
 class Vehicle:
@@ -10,13 +14,14 @@ class Vehicle:
         """
         initialize the vehicle
 
-        :param r:                   width of vehicle
-        :param P:                   vehicle center position vector
-        :param theta:               the rotation of the vehicle
-        :param throttle:            throttle setting of the car (clipped to [-1, 1])
-        :param steer:               steer setting of the car (clipped to [-1, 1])
-        :param mix_method:          method with which to mix v_l, v_r based on steer and throttle ('cosine' or 'linear')
-        :param throttle_multiplier: the throttle setting will be multiplied by this value to get the net v_l, v_r values
+        :param r:                    width of vehicle
+        :param P:                    vehicle center position vector
+        :param theta:                the rotation of the vehicle
+        :param throttle:             throttle setting of the car (clipped to [-1, 1])
+        :param steer:                steer setting of the car (clipped to [-1, 1])
+        :param mix_method:           method with which to mix a_l, a_r based on steer and throttle ('cosine' or 'linear')
+        :param throttle_multiplier:  the throttle setting will be multiplied by this value to get the net a_l, a_r values
+        :param friction_coefficient: for physics
         """
 
         if mix_method == "cosine":
@@ -142,8 +147,22 @@ class Vehicle:
 
     
     def _update_Ps(self) -> None:
+        """
+        Update the positions of the parts of the car
+        """
 
         self.P_l = self.P + self.r/2 * self.j
         self.P_r = self.P - self.r/2 * self.j
-        self.P_f = self.P + self.r * self.i
-        self.P_b = self.P - self.r * self.i
+
+        if proportional:
+            self.P_f = self.P + self.r/2 * self.i
+            self.P_b = self.P - self.r/2 * self.i
+        else:
+            self.P_f = self.P + self.r * self.i
+            self.P_b = self.P - self.r * self.i
+
+
+
+
+
+

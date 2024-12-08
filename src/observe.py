@@ -1,3 +1,6 @@
+"""
+script to observe the behavior of the model in human-rendered simulation
+"""
 from config import *
 import numpy as np
 import torch
@@ -10,22 +13,25 @@ import os
 
 
 # LOAD MODULE
-checkpoint = torch.load("checkpoints/checkpoint_360.tar", map_location=torch_device)
+checkpoint = torch.load("checkpoints/checkpoint_200.tar") # <- pick checkpoint to load
 ac = checkpoint["model"][0]
-ac.to(torch_device)
 
+
+# SETUP ENVIRONMENT
 def nn_control(state: np.ndarray) -> float:
 
-    a, v, logp = ac.step(torch.as_tensor(state, dtype=torch_dtype, device=torch_device))
+    a, v, logp = ac.step(torch.as_tensor(state, dtype=torch_dtype))
 
     return a
 
-# CREATE ENVIRONMENT
-env = sim.Environment(dt=dt, x_bounds=x_bounds, y_bounds=y_bounds, memory_size=memory_size, sensor_names=sensor_names,
-                      obstacle_count=obstacle_count, obstacle_size=obstacle_size, seed=seed, render_type="human", nn_control=nn_control,
-                      obstacle_types=obstacle_types, obstacle_proportions=obstacle_proportions)
+env = sim.Environment(dt=dt, x_bounds=x_bounds, y_bounds=y_bounds,
+                      memory_size=memory_size, sensor_names=sensor_names, reward_function=reward_function,
+                      obstacle_types=obstacle_types, obstacle_proportions=obstacle_proportions, 
+                      obstacle_configs=obstacle_configs, seed=seed, render_type="human", nn_control=nn_control)
 
+# RENDER
 while True:
+
     env.render()
 
 

@@ -1,22 +1,28 @@
+"""
+Adapted from OpenAI's SpinningUp PPO implementation
+"""
 from config import *
 import numpy as np
 import torch
 torch.set_default_dtype(torch_dtype)
 
 from torch.optim import Adam
-import time
 import core
-
+import logx
 import simulation as sim
-import logx 
-
+import time
 import os
 import matplotlib.pyplot as plt
 
-epochs_plot = []
-returns_plot = []
-lengths_plot = []
+def plot_averages(epoch: int, epochs_plot: list, returns_plot: list, lengths_plot: list) -> None:
 
+    # plot average returns and average episode lengths
+    fig, ax = plt.subplots(2,1, figsize=(9,16))
+    ax[0].plot(epochs_plot, returns_plot)
+    ax[0].set_title("Avg Trajectory Returns vs Epoch")
+    ax[1].plot(epochs_plot, lengths_plot)
+    ax[1].set_title("Avg Trajectory Lengths vs Epoch")
+    plt.savefig(f"plots/averages_{epoch}.png")
 
 class PPOBuffer:
     """
@@ -95,8 +101,8 @@ class PPOBuffer:
 
 def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0, 
         steps_per_epoch=4000, epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4,
-        vf_lr=1e-3, train_pi_iters=80, train_v_iters=80, lam=0.95, max_ep_len=1000,
-        target_kl=0.01, save_freq=50, checkpoint_file:str=None):
+        vf_lr=1e-3, train_pi_iters=80, train_v_iters=80, lam=0.97, max_ep_len=1000,
+        target_kl=0.01, save_freq=50, epochs_plot=None, returns_plot=None, lengths_plot=None):
     """
     Proximal Policy Optimization (by clipping), 
 
@@ -195,16 +201,15 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
         save_freq (int): How often (in terms of gap between epochs) to save
             the current policy and value function.
-            
-        checkpoint_file (str): A checkpoint file path that must end in checkpoint_<number>.tar to work. 
-            ppo() will load the checkpoint with torch.load() and start training again.
 
     """
 
     logger = logx.Logger()
 
     # Random seed
-    seed += int(time.time())
+    if seed is None:
+        seed = time.time()
+
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -212,17 +217,10 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     env = env_fn()
     obs_dim = env.observation_space.shape
     act_dim = env.action_space.shape
-    
+
     # Create actor-critic module
-    if checkpoint_file is None:
-        ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs).to(torch_device)
-        checkpoint_epoch = 0
-    else:
-        checkpoint = torch.load(checkpoint_file, map_location=torch_device)
-        ac = checkpoint["model"][0]
-        checkpoint_file = checkpoint_file.removesuffix(".tar")
-        checkpoint_epoch = int(checkpoint_file[checkpoint_file.rfind("_") + 1:]) + 1
-        
+    ac = actor_critic(env.observation_space, env.action_space, **ac_kwargs).to(torch_device)
+
     # Count variables
     var_counts = tuple(core.count_vars(module) for module in [ac.pi, ac.v])
     logger.log('\nNumber of parameters: \t pi: %d, \t v: %d\n'%var_counts)
@@ -304,8 +302,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     o, ep_ret, ep_len = env.reset(), 0, 0
 
     # Main loop: collect experience in env and update/log each epoch
-    for epoch in range(checkpoint_epoch, checkpoint_epoch + epochs):
-        
+    for epoch in range(epochs):
         for t in range(local_steps_per_epoch):
             a, v, logp = ac.step(torch.as_tensor(o, dtype=torch_dtype, device=torch_device))
 
@@ -339,77 +336,64 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
                     logger.store(EpRet=ep_ret, EpLen=ep_len)
                 o, ep_ret, ep_len = env.reset(), 0, 0
 
-
-        # Save model
-        if (epoch % save_freq == 0) or (epoch == checkpoint_epoch + epochs - 1):
-            logger.store(environment=env)
-            logger.store(model=ac)
-            logger.save_state(f"checkpoints/checkpoint_{epoch}.tar")
+        # Save Model
+        if (epoch % save_freq == 0) or (epoch == epochs-1):
+            torch.save(dict(model=[ac]), f"checkpoints/checkpoint_{epoch}.tar")
 
         # Perform PPO update!
         update()
         
-        epochs_plot.append(epoch)
-        returns_plot.append(core.avg(logger.logger_dict['EpRet']))
-        lengths_plot.append(core.avg(logger.logger_dict['EpLen']))
+        # Plot Progress
+        if (epochs_plot is not None) and (returns_plot is not None) and (lengths_plot is not None):
+            epochs_plot.append(epoch)
+            returns_plot.append(core.avg(logger.epoch_dict['EpRet']))
+            lengths_plot.append(core.avg(logger.epoch_dict['EpLen']))
 
-        logger.log(f"            Epoch: {epoch}/{checkpoint_epoch + epochs}")
-        logger.log(f"            EpRet: {core.avg(logger.logger_dict['EpRet'])}")
-        logger.log(f"            EpLen: {core.avg(logger.logger_dict['EpLen'])}")
-        logger.log(f"            VVals: {core.avg(logger.logger_dict['VVals'])}")
+            if (epoch % save_freq == 0) or (epoch == epochs-1):
+                plot_averages(epoch, epochs_plot, returns_plot, lengths_plot)
+
+        logger.log(f"            Epoch: {epoch}/{epochs}")
+        logger.log(f"            EpRet: {core.avg(logger.epoch_dict['EpRet'])}")
+        logger.log(f"            EpLen: {core.avg(logger.epoch_dict['EpLen'])}")
+        logger.log(f"            VVals: {core.avg(logger.epoch_dict['VVals'])}")
         logger.log(f"TotalEnvInteracts: {(epoch+1)*steps_per_epoch}")
-        logger.log(f"           LossPi: {core.avg(logger.logger_dict['LossPi'])}")
-        logger.log(f"            LossV: {core.avg(logger.logger_dict['LossV'])}")
-        logger.log(f"      DeltaLossPi: {core.avg(logger.logger_dict['DeltaLossPi'])}")
-        logger.log(f"       DeltaLossV: {core.avg(logger.logger_dict['DeltaLossV'])}")
-        logger.log(f"          Entropy: {core.avg(logger.logger_dict['Entropy'])}")
-        logger.log(f"               KL: {core.avg(logger.logger_dict['KL'])}")
-        logger.log(f"         ClipFrac: {core.avg(logger.logger_dict['ClipFrac'])}")
-        logger.log(f"         StopIter: {core.avg(logger.logger_dict['StopIter'])}")
+        logger.log(f"           LossPi: {core.avg(logger.epoch_dict['LossPi'])}")
+        logger.log(f"            LossV: {core.avg(logger.epoch_dict['LossV'])}")
+        logger.log(f"      DeltaLossPi: {core.avg(logger.epoch_dict['DeltaLossPi'])}")
+        logger.log(f"       DeltaLossV: {core.avg(logger.epoch_dict['DeltaLossV'])}")
+        logger.log(f"          Entropy: {core.avg(logger.epoch_dict['Entropy'])}")
+        logger.log(f"               KL: {core.avg(logger.epoch_dict['KL'])}")
+        logger.log(f"         ClipFrac: {core.avg(logger.epoch_dict['ClipFrac'])}")
+        logger.log(f"         StopIter: {core.avg(logger.epoch_dict['StopIter'])}")
         logger.log(f"             Time: {time.time()-start_time}")
         logger.log("")
         logger.log("")
 
-        logger.logger_dict = {} # reset
+        logger.epoch_dict = {} # reset
+
 
 if __name__ == '__main__':
 
+
+    # configure environment
+    env_fn = lambda: sim.Environment(dt=dt, x_bounds=x_bounds, y_bounds=y_bounds,
+                                     memory_size=memory_size, sensor_names=sensor_names, reward_function=reward_function,
+                                     obstacle_types=obstacle_types, obstacle_proportions=obstacle_proportions, 
+                                     obstacle_configs=obstacle_configs, seed=seed, render_type=None)
+    
+    # create checkpoints dir
     os.makedirs("checkpoints", exist_ok=True)
+    os.makedirs("plots", exist_ok=True)
 
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--hid', type=int, default=hidden_neurons)
-    parser.add_argument('--l', type=int, default=hidden_layers)
-    parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--seed', '-s', type=int, default=0)
-    parser.add_argument('--cpu', type=int, default=4)
-    parser.add_argument('--steps', type=int, default=4000)
-    parser.add_argument('--epochs', type=int, default=epoch_count)
-    parser.add_argument('--exp_name', type=str, default='ppo')
-    args = parser.parse_args()
+    epochs_plot = []
+    returns_plot = []
+    lengths_plot = []
 
-    env_function = lambda: sim.Environment(dt=dt, x_bounds=x_bounds, y_bounds=y_bounds, memory_size=memory_size, sensor_names=sensor_names,
-                           obstacle_count=obstacle_count, obstacle_size=obstacle_size, seed=seed, render_type=None,
-                           obstacle_types=obstacle_types, obstacle_proportions=obstacle_proportions)
-    
-    
-    # ppo(env_function,
-    #     actor_critic=core.MLPActorCritic,
-    #     ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
-    #     seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq, 
-    #     clip_ratio=0.1, pi_lr=1e-4, max_ep_len=2000)
-    
-    checkpoint_file = "checkpoints/checkpoint_199.tar"
-    ppo(env_function,
-        actor_critic=core.MLPActorCritic,
-        ac_kwargs=dict(hidden_sizes=[args.hid]*args.l), gamma=args.gamma, 
-        seed=args.seed, steps_per_epoch=args.steps, epochs=args.epochs, save_freq=save_freq, checkpoint_file=checkpoint_file,
-        clip_ratio=0.1, pi_lr=1e-4, max_ep_len=2000)
+    # train
+    ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(hidden_sizes=[hidden_neurons]*hidden_layers), seed=0, 
+        steps_per_epoch=steps_per_epoch, epochs=epoch_count, gamma=gamma, clip_ratio=clip_ratio, pi_lr=pi_lr,
+        vf_lr=vf_lr, train_pi_iters=train_pi_iters, train_v_iters=train_v_iters, lam=lam, max_ep_len=max_ep_len,
+        target_kl=target_kl, save_freq=save_freq, epochs_plot=epochs_plot, returns_plot=returns_plot,
+        lengths_plot=lengths_plot)
 
-    fig, ax = plt.subplots(2,1, figsize=(9,16))
-    ax[0].plot(epochs_plot, returns_plot, label="avg episode returns")
-    ax[0].set_title("Avg Returns vs Epoch")
-    ax[1].plot(epochs_plot, lengths_plot, label="avg episode lengths")
-    ax[1].set_title("Avg Lengths vs Epoch")
-    plt.savefig("averages.png")
 

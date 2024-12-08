@@ -1,3 +1,6 @@
+"""
+a pygame API inspired by the matplotlib API
+"""
 import numpy as np
 import copy
 import os
