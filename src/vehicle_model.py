@@ -43,6 +43,7 @@ class Vehicle:
 
         self.v_l = 0
         self.v_r = 0
+        self.omega = (self.v_l - self.v_r)/self.r
 
         self.a_l, self.a_r = self.mix()
 
@@ -108,6 +109,9 @@ class Vehicle:
         self.v_r = 10 * self.a_r * dt + self.v_r
         self.v_l = 10 * self.a_l * dt + self.v_l
 
+        self.theta = self.omega * dt + self.theta
+        self.theta = self.theta % (2*np.pi) # <- clip theta
+
         self.omega = (self.v_l - self.v_r)/self.r
 
         self.v_p_local = self.omega*(self.r/2)                  # magnitude of local velocity vector (w.r.t v_r)
@@ -116,8 +120,6 @@ class Vehicle:
         self.P = self.V_p * dt + self.P
         self._update_Ps()
 
-        self.theta = self.omega * dt + self.theta
-        self.theta = self.theta % (2*np.pi) # <- clip theta
 
         self.i = np.array([np.cos(self.theta), np.sin(self.theta)]) # local x unit vector
         self.j = np.array([-1*np.sin(self.theta), np.cos(self.theta)])  # local y unit vector
